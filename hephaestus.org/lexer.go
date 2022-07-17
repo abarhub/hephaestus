@@ -62,6 +62,10 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 		return EQUALS, string(ch)
 	case ';':
 		return SEMICOLON, string(ch)
+	case '+':
+		return ADD, string(ch)
+	case '-':
+		return SUB, string(ch)
 	}
 
 	return ILLEGAL, string(ch)

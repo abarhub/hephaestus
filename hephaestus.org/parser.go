@@ -7,12 +7,6 @@ import (
 	"strings"
 )
 
-// SelectStatement represents a SQL SELECT statement.
-/*type SelectStatement struct {
-	Fields    []string
-	TableName string
-}*/
-
 type Function struct {
 	name        string
 	instruction []Instruction
@@ -20,7 +14,24 @@ type Function struct {
 
 type Instruction struct {
 	variable string
-	valeur   int
+	valeur   *Expression
+}
+
+type ExprCode int
+
+const (
+	EXPR_CODE_INT ExprCode = iota
+	EXPR_CODE_VAR
+	EXPR_CODE_ADD
+	EXPR_CODE_SUB
+)
+
+type Expression struct {
+	code      ExprCode
+	valeurInt int
+	variable  string
+	left      *Expression
+	right     *Expression
 }
 
 // Parser represents a parser.
@@ -40,7 +51,7 @@ func NewParser(r io.Reader) *Parser {
 
 func parser() {
 
-	s := "void main () { x=5;y=18;}"
+	s := "void main () { x=5;y=18;z=x;t=x+8;}"
 	funct, err := NewParser(strings.NewReader(s)).Parse2()
 
 	if err != nil {
@@ -48,8 +59,57 @@ func parser() {
 	} else {
 		fmt.Printf("ok %v\n", funct)
 		interpreter := NewInterpreter(funct)
-		interpreter.interpreter()
+		err = interpreter.interpreter()
+		if err != nil {
+			fmt.Printf("error : %v\n", err)
+		}
 	}
+}
+
+func (p *Parser) parseExpr() (*Expression, error) {
+	var expr Expression
+	tok, lit := p.scanIgnoreWhitespace()
+	if tok == NUMBER {
+		intVar, err := strconv.Atoi(lit)
+		if err != nil {
+			return nil, fmt.Errorf("found %q, expected number", lit)
+		} else {
+			expr = Expression{code: EXPR_CODE_INT, valeurInt: intVar}
+		}
+	} else if tok == IDENT {
+		expr = Expression{code: EXPR_CODE_VAR, variable: lit}
+	} else {
+		return nil, fmt.Errorf("found %q, expected number", lit)
+	}
+	tok, lit = p.scanIgnoreWhitespace()
+	if tok == ADD {
+		expr2, err := p.parseExpr()
+		if err != nil {
+			return nil, fmt.Errorf("expected expression for add: %s", err)
+		} else {
+			var expr3 *Expression
+			expr3 = new(Expression)
+			expr3.code = EXPR_CODE_ADD
+			expr3.left = &expr
+			expr3.right = expr2
+			//expr3 := Expression{code: EXPR_CODE_ADD, left: &expr, right: expr2}
+			//expr = expr3
+			return expr3, nil
+		}
+	} else if tok == SUB {
+		expr2, err := p.parseExpr()
+		if err != nil {
+			return nil, fmt.Errorf("expected expression for sub: %s", err)
+		} else {
+			expr = Expression{code: EXPR_CODE_SUB, left: &expr, right: expr2}
+			//expr = expr3
+			//if(expr3.right.code==)
+			//return &expr3, nil
+		}
+	} else {
+		p.unscan()
+	}
+	return &expr, nil
 }
 
 func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
@@ -68,15 +128,11 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 			return nil, fmt.Errorf("found %q, expected =", lit)
 		}
 
-		if tok, lit := p.scanIgnoreWhitespace(); tok != NUMBER {
-			return nil, fmt.Errorf("found %q, expected number", lit)
+		expr, err := p.parseExpr()
+		if err != nil {
+			return nil, fmt.Errorf("invalid expression: %s", err)
 		} else {
-			intVar, err := strconv.Atoi(lit)
-			if err != nil {
-				return nil, fmt.Errorf("found %q, expected number", lit)
-			} else {
-				instr.valeur = intVar
-			}
+			instr.valeur = expr
 		}
 
 		if tok, lit := p.scanIgnoreWhitespace(); tok != SEMICOLON {

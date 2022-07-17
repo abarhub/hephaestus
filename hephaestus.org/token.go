@@ -22,6 +22,8 @@ const (
 	CLOSE_CURLY_BRACKET // }
 	EQUALS              // =
 	SEMICOLON           // ;
+	ADD                 // +
+	SUB                 // -
 
 	// Keywords
 	VOID

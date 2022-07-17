@@ -21,10 +21,10 @@ func TestParser_ParseStatement(t *testing.T) {
 				instruction: []Instruction{
 					{
 						variable: "x",
-						valeur:   5,
+						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 5},
 					}, {
 						variable: "y",
-						valeur:   18,
+						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 18},
 					},
 				},
 			},
@@ -37,10 +37,28 @@ func TestParser_ParseStatement(t *testing.T) {
 				instruction: []Instruction{
 					{
 						variable: "abc",
-						valeur:   10,
+						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
 					}, {
 						variable: "zzz",
-						valeur:   156,
+						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 156},
+					},
+				},
+			},
+			},
+		},
+		{
+			s: `void test3() { x=10; y=x+15;}`,
+			funct: []Function{{
+				name: "test3",
+				instruction: []Instruction{
+					{
+						variable: "x",
+						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
+					}, {
+						variable: "y",
+						valeur: &Expression{code: EXPR_CODE_ADD,
+							left:  &Expression{code: EXPR_CODE_VAR, variable: "x"},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 15}},
 					},
 				},
 			},
