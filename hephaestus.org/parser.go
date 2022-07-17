@@ -44,9 +44,11 @@ func parser() {
 	funct, err := NewParser(strings.NewReader(s)).Parse2()
 
 	if err != nil {
-		fmt.Printf("error : %v", err)
+		fmt.Printf("error : %v\n", err)
 	} else {
-		fmt.Printf("ok %v", funct)
+		fmt.Printf("ok %v\n", funct)
+		interpreter := NewInterpreter(funct)
+		interpreter.interpreter()
 	}
 }
 
