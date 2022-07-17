@@ -23,8 +23,12 @@ func NewScanner(r io.Reader) *Scanner {
 	return &Scanner{r: bufio.NewReader(r)}
 }
 
+func newScannerRes(tok Token, lit string) ScannerRes {
+	return ScannerRes{tok: tok, lit: lit}
+}
+
 // Scan returns the next token and literal value.
-func (s *Scanner) Scan() (tok Token, lit string) {
+func (s *Scanner) Scan() ScannerRes {
 	// Read the next rune.
 	ch := s.read()
 
@@ -45,34 +49,34 @@ func (s *Scanner) Scan() (tok Token, lit string) {
 	// Otherwise read the individual character.
 	switch ch {
 	case eof:
-		return EOF, ""
+		return newScannerRes(EOF, "")
 	case '*':
-		return ASTERISK, string(ch)
+		return newScannerRes(ASTERISK, string(ch))
 	case ',':
-		return COMMA, string(ch)
+		return newScannerRes(COMMA, string(ch))
 	case '(':
-		return OPEN_PARENTHESIS, string(ch)
+		return newScannerRes(OPEN_PARENTHESIS, string(ch))
 	case ')':
-		return CLOSE_PARENTHESIS, string(ch)
+		return newScannerRes(CLOSE_PARENTHESIS, string(ch))
 	case '{':
-		return OPEN_CURLY_BRACKET, string(ch)
+		return newScannerRes(OPEN_CURLY_BRACKET, string(ch))
 	case '}':
-		return CLOSE_CURLY_BRACKET, string(ch)
+		return newScannerRes(CLOSE_CURLY_BRACKET, string(ch))
 	case '=':
-		return EQUALS, string(ch)
+		return newScannerRes(EQUALS, string(ch))
 	case ';':
-		return SEMICOLON, string(ch)
+		return newScannerRes(SEMICOLON, string(ch))
 	case '+':
-		return ADD, string(ch)
+		return newScannerRes(ADD, string(ch))
 	case '-':
-		return SUB, string(ch)
+		return newScannerRes(SUB, string(ch))
 	}
 
-	return ILLEGAL, string(ch)
+	return newScannerRes(ILLEGAL, string(ch))
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
-func (s *Scanner) scanWhitespace() (tok Token, lit string) {
+func (s *Scanner) scanWhitespace() ScannerRes {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -90,11 +94,11 @@ func (s *Scanner) scanWhitespace() (tok Token, lit string) {
 		}
 	}
 
-	return WS, buf.String()
+	return newScannerRes(WS, buf.String())
 }
 
 // scanIdent consumes the current rune and all contiguous ident runes.
-func (s *Scanner) scanIdent() (tok Token, lit string) {
+func (s *Scanner) scanIdent() ScannerRes {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -114,18 +118,18 @@ func (s *Scanner) scanIdent() (tok Token, lit string) {
 
 	switch buf.String() {
 	case "void":
-		return VOID, buf.String()
+		return newScannerRes(VOID, buf.String())
 	case "int":
-		return INT, buf.String()
+		return newScannerRes(INT, buf.String())
 	case "string":
-		return STRING, buf.String()
+		return newScannerRes(STRING, buf.String())
 	}
 
 	// Otherwise return as a regular identifier.
-	return IDENT, buf.String()
+	return newScannerRes(IDENT, buf.String())
 }
 
-func (s *Scanner) scanNumber() (tok Token, lit string) {
+func (s *Scanner) scanNumber() ScannerRes {
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
 
@@ -140,7 +144,7 @@ func (s *Scanner) scanNumber() (tok Token, lit string) {
 		}
 	}
 
-	return NUMBER, buf.String()
+	return newScannerRes(NUMBER, buf.String())
 }
 
 // read reads the next rune from the buffered reader.

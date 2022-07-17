@@ -201,7 +201,8 @@ func (p *Parser) scan() (tok Token, lit string) {
 	}
 
 	// Otherwise read the next token from the scanner.
-	tok, lit = p.s.Scan()
+	tmp := p.s.Scan()
+	tok, lit = tmp.tok, tmp.lit
 
 	// Save it to the buffer in case we unscan later.
 	p.buf.tok, p.buf.lit = tok, lit
