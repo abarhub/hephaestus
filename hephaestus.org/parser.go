@@ -8,10 +8,10 @@ import (
 )
 
 // SelectStatement represents a SQL SELECT statement.
-type SelectStatement struct {
+/*type SelectStatement struct {
 	Fields    []string
 	TableName string
-}
+}*/
 
 type Function struct {
 	name        string
@@ -41,12 +41,12 @@ func NewParser(r io.Reader) *Parser {
 func parser() {
 
 	s := "void main () { x=5;y=18;}"
-	stmt, err := NewParser(strings.NewReader(s)).Parse2()
+	funct, err := NewParser(strings.NewReader(s)).Parse2()
 
 	if err != nil {
-		fmt.Printf("error :", err)
+		fmt.Printf("error : %v", err)
 	} else {
-		fmt.Printf("ok", stmt)
+		fmt.Printf("ok %v", funct)
 	}
 }
 
@@ -86,8 +86,6 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 		if tok, _ := p.scanIgnoreWhitespace(); tok == CLOSE_CURLY_BRACKET {
 			p.unscan()
 			break
-			//return instr,nil
-			//return nil, fmt.Errorf("found %q, expected ;", lit)
 		} else {
 			p.unscan()
 		}
@@ -97,7 +95,7 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 	return nil, nil
 }
 
-func (p *Parser) Parse2() (*Function, error) {
+func (p *Parser) Parse2() ([]Function, error) {
 
 	funct := &Function{}
 
@@ -107,6 +105,8 @@ func (p *Parser) Parse2() (*Function, error) {
 
 	if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
 		return nil, fmt.Errorf("found %q, expected main", lit)
+	} else {
+		funct.name = lit
 	}
 
 	if tok, lit := p.scanIgnoreWhitespace(); tok != OPEN_PARENTHESIS {
@@ -130,7 +130,7 @@ func (p *Parser) Parse2() (*Function, error) {
 		return nil, fmt.Errorf("found %q, expected }", lit)
 	}
 
-	return funct, nil
+	return []Function{*funct}, nil
 }
 
 // scan returns the next token from the underlying scanner.
