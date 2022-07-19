@@ -82,29 +82,23 @@ func (p *Parser) parseExpr() (*Expression, error) {
 		return nil, fmt.Errorf("found %q, expected number", lit)
 	}
 	tok, lit = p.scanIgnoreWhitespace()
-	if tok == ADD {
+	if tok == ADD || tok == SUB {
 		expr2, err := p.parseExpr()
 		if err != nil {
 			return nil, fmt.Errorf("expected expression for add: %s", err)
 		} else {
 			var expr3 *Expression
 			expr3 = new(Expression)
-			expr3.code = EXPR_CODE_ADD
+			if tok == ADD {
+				expr3.code = EXPR_CODE_ADD
+			} else if tok == SUB {
+				expr3.code = EXPR_CODE_SUB
+			} else {
+				return nil, fmt.Errorf("expected operator + or -")
+			}
 			expr3.left = &expr
 			expr3.right = expr2
-			//expr3 := Expression{code: EXPR_CODE_ADD, left: &expr, right: expr2}
-			//expr = expr3
 			return expr3, nil
-		}
-	} else if tok == SUB {
-		expr2, err := p.parseExpr()
-		if err != nil {
-			return nil, fmt.Errorf("expected expression for sub: %s", err)
-		} else {
-			expr = Expression{code: EXPR_CODE_SUB, left: &expr, right: expr2}
-			//expr = expr3
-			//if(expr3.right.code==)
-			//return &expr3, nil
 		}
 	} else {
 		p.unscan()
