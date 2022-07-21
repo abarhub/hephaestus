@@ -59,7 +59,7 @@ func parser() {
 	} else {
 		fmt.Printf("ok %v\n", funct)
 		interpreter := NewInterpreter(funct)
-		err = interpreter.interpreter()
+		_, err = interpreter.interpreter()
 		if err != nil {
 			fmt.Printf("error : %v\n", err)
 		}

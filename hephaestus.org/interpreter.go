@@ -38,8 +38,9 @@ func (interpreter *Interpreter) getIntValue(expression *Expression, symbolTable 
 	return 0, nil
 }
 
-func (interpreter *Interpreter) interpreter() error {
+func (interpreter *Interpreter) interpreter() ([]map[string]int, error) {
 
+	var res []map[string]int = nil
 	for _, function := range interpreter.functions {
 		fmt.Printf("function %s\n", function.name)
 
@@ -49,14 +50,15 @@ func (interpreter *Interpreter) interpreter() error {
 			fmt.Printf("%s=", instruction.variable)
 			val, err := interpreter.getIntValue(instruction.valeur, symbolTable)
 			if err != nil {
-				return fmt.Errorf("error: %s", err)
+				return nil, fmt.Errorf("error: %s", err)
 			}
 			fmt.Printf("%d", val)
 			symbolTable[instruction.variable] = val
 			fmt.Printf("\n")
 		}
 
+		res = append(res, symbolTable)
 	}
 
-	return nil
+	return res, nil
 }
