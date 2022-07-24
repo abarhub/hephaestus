@@ -70,14 +70,22 @@ func TestParser_interpreter(t *testing.T) {
 	for i, tt := range tests {
 		funct, err := NewParser(strings.NewReader(tt.s)).Parse2()
 
-		interpreter := NewInterpreter(funct)
-		var symbolTableList []map[string]int
-		symbolTableList, err = interpreter.interpreter()
+		if funct == nil {
+			t.Errorf("%d. %q: error no program to execute\n", i, tt.s)
+		} else {
+			interpreter := NewInterpreter(funct)
+			var symbolTableList []map[string]int
+			symbolTableList, err = interpreter.interpreter()
 
-		if !reflect.DeepEqual(tt.err, errstring2(err)) {
-			t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
-		} else if tt.err == "" && !reflect.DeepEqual(tt.symbolTable, symbolTableList[0]) {
-			t.Errorf("%d. %q\n\nstmt mismatch:\n\nexp=%#v\n\ngot=%#v\n\n", i, tt.s, tt.symbolTable, symbolTableList)
+			if !reflect.DeepEqual(tt.err, errstring2(err)) {
+				t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
+			} else if err != nil {
+				t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
+			} else if symbolTableList == nil {
+				t.Errorf("%d. %q: error no symbol table\n", i, tt.s)
+			} else if tt.err == "" && !reflect.DeepEqual(tt.symbolTable, symbolTableList[0]) {
+				t.Errorf("%d. %q\n\nstmt mismatch:\n\nexp=%#v\n\ngot=%#v\n\n", i, tt.s, tt.symbolTable, symbolTableList)
+			}
 		}
 	}
 }

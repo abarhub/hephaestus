@@ -17,7 +17,8 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void main () { x=5;y=18;}`,
 			funct: []Function{{
-				name: "main",
+				returnType: Type{TYPE_VOID},
+				name:       "main",
 				instruction: []Instruction{
 					{
 						variable: "x",
@@ -33,7 +34,8 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void test123() { abc=10; zzz=156;}`,
 			funct: []Function{{
-				name: "test123",
+				returnType: Type{TYPE_VOID},
+				name:       "test123",
 				instruction: []Instruction{
 					{
 						variable: "abc",
@@ -49,7 +51,8 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void test3() { x=10; y=x+15;}`,
 			funct: []Function{{
-				name: "test3",
+				returnType: Type{TYPE_VOID},
+				name:       "test3",
 				instruction: []Instruction{
 					{
 						variable: "x",

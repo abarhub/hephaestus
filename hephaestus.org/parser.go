@@ -7,7 +7,20 @@ import (
 	"strings"
 )
 
+type TypeCode int
+
+const (
+	TYPE_INT TypeCode = iota
+	TYPE_VOID
+	TYPE_STRING
+)
+
+type Type struct {
+	code TypeCode
+}
+
 type Function struct {
+	returnType  Type
 	name        string
 	instruction []Instruction
 }
@@ -106,6 +119,25 @@ func (p *Parser) parseExpr() (*Expression, error) {
 	return &expr, nil
 }
 
+func (p *Parser) parseType() (*Type, error) {
+	var res *Type
+	if tok, lit := p.scanIgnoreWhitespace(); tok == VOID {
+		res = new(Type)
+		res.code = TYPE_VOID
+		return res, nil
+	} else if tok == INT {
+		res = new(Type)
+		res.code = TYPE_INT
+		return res, nil
+	} else if tok == STRING {
+		res = new(Type)
+		res.code = TYPE_STRING
+		return res, nil
+	} else {
+		return nil, fmt.Errorf("found %q, expected type", lit)
+	}
+}
+
 func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 
 	for {
@@ -151,9 +183,11 @@ func (p *Parser) Parse2() ([]Function, error) {
 
 	funct := &Function{}
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != VOID {
-		return nil, fmt.Errorf("found %q, expected void", lit)
+	typeReturn, err := p.parseType()
+	if err != nil {
+		return nil, err
 	}
+	funct.returnType = *typeReturn
 
 	if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
 		return nil, fmt.Errorf("found %q, expected main", lit)
@@ -173,7 +207,7 @@ func (p *Parser) Parse2() ([]Function, error) {
 		return nil, fmt.Errorf("found %q, expected {", lit)
 	}
 
-	_, err := p.parseInstr(funct)
+	_, err = p.parseInstr(funct)
 	if err != nil {
 		return nil, fmt.Errorf("expected instruction: %s", err)
 	}
