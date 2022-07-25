@@ -17,15 +17,15 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void main () { x=5;y=18;}`,
 			funct: []Function{{
-				returnType: Type{TYPE_VOID},
-				name:       "main",
-				instruction: []Instruction{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "main",
+				Instruction: []Instruction{
 					{
-						variable: "x",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 5},
+						Variable: "x",
+						Valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 5},
 					}, {
-						variable: "y",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 18},
+						Variable: "y",
+						Valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 18},
 					},
 				},
 			},
@@ -34,15 +34,15 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void test123() { abc=10; zzz=156;}`,
 			funct: []Function{{
-				returnType: Type{TYPE_VOID},
-				name:       "test123",
-				instruction: []Instruction{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "test123",
+				Instruction: []Instruction{
 					{
-						variable: "abc",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
+						Variable: "abc",
+						Valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
 					}, {
-						variable: "zzz",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 156},
+						Variable: "zzz",
+						Valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 156},
 					},
 				},
 			},
@@ -51,15 +51,15 @@ func TestParser_ParseStatement(t *testing.T) {
 		{
 			s: `void test3() { x=10; y=x+15;}`,
 			funct: []Function{{
-				returnType: Type{TYPE_VOID},
-				name:       "test3",
-				instruction: []Instruction{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "test3",
+				Instruction: []Instruction{
 					{
-						variable: "x",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
+						Variable: "x",
+						Valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
 					}, {
-						variable: "y",
-						valeur: &Expression{code: EXPR_CODE_ADD,
+						Variable: "y",
+						Valeur: &Expression{code: EXPR_CODE_ADD,
 							left:  &Expression{code: EXPR_CODE_VAR, variable: "x"},
 							right: &Expression{code: EXPR_CODE_INT, valeurInt: 15}},
 					},

@@ -20,14 +20,14 @@ type Type struct {
 }
 
 type Function struct {
-	returnType  Type
-	name        string
-	instruction []Instruction
+	ReturnType  Type
+	Name        string
+	Instruction []Instruction
 }
 
 type Instruction struct {
-	variable string
-	valeur   *Expression
+	Variable string
+	Valeur   *Expression
 }
 
 type ExprCode int
@@ -65,16 +65,22 @@ func NewParser(r io.Reader) *Parser {
 func parser() {
 
 	s := "void main () { x=5;y=18;z=x;t=x+8;}"
-	funct, err := NewParser(strings.NewReader(s)).Parse2()
+	p := NewParser(strings.NewReader(s))
+	funct, err := p.Parse2()
 
 	if err != nil {
 		fmt.Printf("error : %v\n", err)
 	} else {
-		fmt.Printf("ok %v\n", funct)
-		interpreter := NewInterpreter(funct)
-		_, err = interpreter.interpreter()
+		err = p.Checker(funct)
 		if err != nil {
 			fmt.Printf("error : %v\n", err)
+		} else {
+			fmt.Printf("ok %v\n", funct)
+			interpreter := NewInterpreter(funct)
+			_, err = interpreter.interpreter()
+			if err != nil {
+				fmt.Printf("error : %v\n", err)
+			}
 		}
 	}
 }
@@ -147,7 +153,7 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 		if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
 			return nil, fmt.Errorf("found %q, expected identifier", lit)
 		} else {
-			instr.variable = lit
+			instr.Variable = lit
 		}
 
 		if tok, lit := p.scanIgnoreWhitespace(); tok != EQUALS {
@@ -158,14 +164,14 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid expression: %s", err)
 		} else {
-			instr.valeur = expr
+			instr.Valeur = expr
 		}
 
 		if tok, lit := p.scanIgnoreWhitespace(); tok != SEMICOLON {
 			return nil, fmt.Errorf("found %q, expected ';'", lit)
 		}
 
-		funct.instruction = append(funct.instruction, *instr)
+		funct.Instruction = append(funct.Instruction, *instr)
 
 		if tok, _ := p.scanIgnoreWhitespace(); tok == CLOSE_CURLY_BRACKET {
 			p.unscan()
@@ -187,12 +193,12 @@ func (p *Parser) Parse2() ([]Function, error) {
 	if err != nil {
 		return nil, err
 	}
-	funct.returnType = *typeReturn
+	funct.ReturnType = *typeReturn
 
 	if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
 		return nil, fmt.Errorf("found %q, expected main", lit)
 	} else {
-		funct.name = lit
+		funct.Name = lit
 	}
 
 	if tok, lit := p.scanIgnoreWhitespace(); tok != OPEN_PARENTHESIS {

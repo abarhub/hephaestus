@@ -42,18 +42,18 @@ func (interpreter *Interpreter) interpreter() ([]map[string]int, error) {
 
 	var res []map[string]int = nil
 	for _, function := range interpreter.functions {
-		fmt.Printf("function %s\n", function.name)
+		fmt.Printf("function %s\n", function.Name)
 
 		symbolTable := make(map[string]int)
 
-		for _, instruction := range function.instruction {
-			fmt.Printf("%s=", instruction.variable)
-			val, err := interpreter.getIntValue(instruction.valeur, symbolTable)
+		for _, instruction := range function.Instruction {
+			fmt.Printf("%s=", instruction.Variable)
+			val, err := interpreter.getIntValue(instruction.Valeur, symbolTable)
 			if err != nil {
 				return nil, fmt.Errorf("error: %s", err)
 			}
 			fmt.Printf("%d", val)
-			symbolTable[instruction.variable] = val
+			symbolTable[instruction.Variable] = val
 			fmt.Printf("\n")
 		}
 
