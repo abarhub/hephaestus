@@ -95,6 +95,19 @@ func (interpreter *Interpreter) getIntValue(expression *Expression, symbolTable 
 	return nil, fmt.Errorf("expression not valid")
 }
 
+func (interpreter *Interpreter) printValue(value *Valeur) error {
+	if value.valeurtype.code == TYPE_INT {
+		fmt.Printf("%d", value.valeurInt)
+	} else if value.valeurtype.code == TYPE_STRING {
+		fmt.Printf("%s", value.valeurString)
+	} else if value.valeurtype.code == TYPE_BOOLEAN {
+		fmt.Printf("%t", value.valeurBoolean)
+	} else {
+		return fmt.Errorf("value not valid")
+	}
+	return nil
+}
+
 func (interpreter *Interpreter) interpreter() ([]map[string]Valeur, error) {
 
 	var res []map[string]Valeur = nil
@@ -104,19 +117,28 @@ func (interpreter *Interpreter) interpreter() ([]map[string]Valeur, error) {
 		symbolTable := make(map[string]Valeur)
 
 		for _, instruction := range function.Instruction {
-			fmt.Printf("%s=", instruction.Variable)
-			val, err := interpreter.getIntValue(instruction.Valeur, symbolTable)
-			if err != nil {
-				return nil, fmt.Errorf("error: %s", err)
+			if instruction.Code == INSTRUCTION_AFFECTATION {
+				fmt.Printf("%s=", instruction.Variable)
+				val, err := interpreter.getIntValue(instruction.Valeur, symbolTable)
+				if err != nil {
+					return nil, fmt.Errorf("error: %s", err)
+				}
+				interpreter.printValue(val)
+				symbolTable[instruction.Variable] = *val
+			} else if instruction.Code == INSTRUCTION_CALL {
+				fmt.Printf("%s(", instruction.FunctionName)
+				for i, expr := range instruction.Parameter {
+					val, err := interpreter.getIntValue(&expr, symbolTable)
+					if err != nil {
+						return nil, fmt.Errorf("error: %s", err)
+					}
+					if i > 0 {
+						fmt.Printf(",")
+					}
+					interpreter.printValue(val)
+				}
+				fmt.Printf(")")
 			}
-			if val.valeurtype.code == TYPE_INT {
-				fmt.Printf("%d", val.valeurInt)
-			} else if val.valeurtype.code == TYPE_STRING {
-				fmt.Printf("%s", val.valeurString)
-			} else if val.valeurtype.code == TYPE_BOOLEAN {
-				fmt.Printf("%t", val.valeurBoolean)
-			}
-			symbolTable[instruction.Variable] = *val
 			fmt.Printf("\n")
 		}
 

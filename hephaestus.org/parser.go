@@ -16,6 +16,13 @@ const (
 	TYPE_BOOLEAN
 )
 
+type InstructionCode int
+
+const (
+	INSTRUCTION_AFFECTATION InstructionCode = iota
+	INSTRUCTION_CALL
+)
+
 type Type struct {
 	code TypeCode
 }
@@ -27,8 +34,11 @@ type Function struct {
 }
 
 type Instruction struct {
-	Variable string
-	Valeur   *Expression
+	Code         InstructionCode
+	FunctionName string
+	Variable     string
+	Valeur       *Expression
+	Parameter    []Expression
 }
 
 type ExprCode int
@@ -78,7 +88,7 @@ func NewParser(r io.Reader) *Parser {
 
 func parser() {
 
-	s := "void main () { x=5;y=18;z=x;t=x+8;v=\"abc\";}"
+	s := "void main () { x=5;y=18;z=x;t=x+8;v=\"abc\";print(x,y,z,t,v);}"
 	p := NewParser(strings.NewReader(s))
 	funct, err := p.Parse2()
 
@@ -167,22 +177,46 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 	for {
 
 		instr := &Instruction{}
+		var name = ""
 
 		if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
 			return nil, fmt.Errorf("found %q, expected identifier", lit)
 		} else {
-			instr.Variable = lit
+			name = lit
 		}
 
-		if tok, lit := p.scanIgnoreWhitespace(); tok != EQUALS {
-			return nil, fmt.Errorf("found %q, expected =", lit)
-		}
-
-		expr, err := p.parseExpr()
-		if err != nil {
-			return nil, fmt.Errorf("invalid expression: %s", err)
+		if tok, lit := p.scanIgnoreWhitespace(); tok == EQUALS {
+			expr, err := p.parseExpr()
+			if err != nil {
+				return nil, fmt.Errorf("invalid expression: %s", err)
+			} else {
+				instr.Code = INSTRUCTION_AFFECTATION
+				instr.Valeur = expr
+				instr.Variable = name
+			}
+		} else if tok == OPEN_PARENTHESIS {
+			instr.Code = INSTRUCTION_CALL
+			instr.FunctionName = name
+			var param []Expression
+			end := false
+			for !end {
+				expr, err := p.parseExpr()
+				if err != nil {
+					return nil, fmt.Errorf("invalid expression: %s", err)
+				} else {
+					param = append(param, *expr)
+					if tok, _ := p.scanIgnoreWhitespace(); tok == COMMA {
+						// on continue
+					} else if tok == CLOSE_PARENTHESIS {
+						end = true
+					} else {
+						return nil, fmt.Errorf("invalid call")
+					}
+				}
+			}
+			instr.Parameter = param
 		} else {
-			instr.Valeur = expr
+			return nil, fmt.Errorf("found %q, expected =", lit)
 		}
 
 		if tok, lit := p.scanIgnoreWhitespace(); tok != SEMICOLON {
