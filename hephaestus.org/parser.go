@@ -37,14 +37,16 @@ const (
 	EXPR_CODE_VAR
 	EXPR_CODE_ADD
 	EXPR_CODE_SUB
+	EXPR_CODE_STR
 )
 
 type Expression struct {
-	code      ExprCode
-	valeurInt int
-	variable  string
-	left      *Expression
-	right     *Expression
+	code         ExprCode
+	valeurInt    int
+	variable     string
+	valeurString string
+	left         *Expression
+	right        *Expression
 }
 
 // Parser represents a parser.
@@ -64,7 +66,7 @@ func NewParser(r io.Reader) *Parser {
 
 func parser() {
 
-	s := "void main () { x=5;y=18;z=x;t=x+8;}"
+	s := "void main () { x=5;y=18;z=x;t=x+8;v=\"abc\";}"
 	p := NewParser(strings.NewReader(s))
 	funct, err := p.Parse2()
 
@@ -97,6 +99,8 @@ func (p *Parser) parseExpr() (*Expression, error) {
 		}
 	} else if tok == IDENT {
 		expr = Expression{code: EXPR_CODE_VAR, variable: lit}
+	} else if tok == STRING_LITERAL {
+		expr = Expression{code: EXPR_CODE_STR, valeurString: lit}
 	} else {
 		return nil, fmt.Errorf("found %q, expected number", lit)
 	}

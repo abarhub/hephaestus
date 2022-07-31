@@ -10,61 +10,36 @@ import (
 func TestParser_interpreter(t *testing.T) {
 	var tests = []struct {
 		s           string
-		symbolTable map[string]int
+		symbolTable map[string]Valeur
 		err         string
 	}{
 		// test interpreter
 		{
 			s: `void main () { x=5;y=18;}`,
-			symbolTable: map[string]int{
-				"x": 5,
-				"y": 18,
+			symbolTable: map[string]Valeur{
+				"x": {code: CODE_INT, valeurInt: 5},
+				"y": {code: CODE_INT, valeurInt: 18},
 			},
 		},
 		{
 			s: `void main () { x=10;y=26;z=x+15;}`,
-			symbolTable: map[string]int{
-				"x": 10,
-				"y": 26,
-				"z": 25,
-			},
-		},
-		/*{
-			s: `void test123() { abc=10; zzz=156;}`,
-			funct: []Function{{
-				name: "test123",
-				instruction: []Instruction{
-					{
-						variable: "abc",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
-					}, {
-						variable: "zzz",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 156},
-					},
-				},
-			},
+			symbolTable: map[string]Valeur{
+				"x": {code: CODE_INT, valeurInt: 10},
+				"y": {code: CODE_INT, valeurInt: 26},
+				"z": {code: CODE_INT, valeurInt: 25},
 			},
 		},
 		{
-			s: `void test3() { x=10; y=x+15;}`,
-			funct: []Function{{
-				name: "test3",
-				instruction: []Instruction{
-					{
-						variable: "x",
-						valeur:   &Expression{code: EXPR_CODE_INT, valeurInt: 10},
-					}, {
-						variable: "y",
-						valeur: &Expression{code: EXPR_CODE_ADD,
-							left:  &Expression{code: EXPR_CODE_VAR, variable: "x"},
-							right: &Expression{code: EXPR_CODE_INT, valeurInt: 15}},
-					},
-				},
+			s: `void main () { x="abc";}`,
+			symbolTable: map[string]Valeur{
+				"x": {code: CODE_STRING, valeurString: "abc"},
 			},
-			},
-		},*/
+		},
 		// Errors
-		//{s: `void main()`, err: `found "", expected {`},
+		{
+			s:   `void main () { x=y;}`,
+			err: "error: variable y not declared",
+		},
 	}
 
 	for i, tt := range tests {
@@ -74,14 +49,14 @@ func TestParser_interpreter(t *testing.T) {
 			t.Errorf("%d. %q: error no program to execute\n", i, tt.s)
 		} else {
 			interpreter := NewInterpreter(funct)
-			var symbolTableList []map[string]int
+			var symbolTableList []map[string]Valeur
 			symbolTableList, err = interpreter.interpreter()
 
 			if !reflect.DeepEqual(tt.err, errstring2(err)) {
 				t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
-			} else if err != nil {
+			} else if err != nil && tt.err == "" {
 				t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
-			} else if symbolTableList == nil {
+			} else if symbolTableList == nil && tt.symbolTable != nil {
 				t.Errorf("%d. %q: error no symbol table\n", i, tt.s)
 			} else if tt.err == "" && !reflect.DeepEqual(tt.symbolTable, symbolTableList[0]) {
 				t.Errorf("%d. %q\n\nstmt mismatch:\n\nexp=%#v\n\ngot=%#v\n\n", i, tt.s, tt.symbolTable, symbolTableList)

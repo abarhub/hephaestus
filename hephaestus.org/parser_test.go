@@ -67,6 +67,24 @@ func TestParser_ParseStatement(t *testing.T) {
 			},
 			},
 		},
+		{
+			s: `void test3() { x="abc"; y=x;}`,
+			funct: []Function{{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "test3",
+				Instruction: []Instruction{
+					{
+						Variable: "x",
+						Valeur:   &Expression{code: EXPR_CODE_STR, valeurString: "abc"},
+					}, {
+						Variable: "y",
+						Valeur: &Expression{code: EXPR_CODE_VAR,
+							variable: "x"},
+					},
+				},
+			},
+			},
+		},
 		// Errors
 		{s: `void main()`, err: `found "", expected {`},
 	}

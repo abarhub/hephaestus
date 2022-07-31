@@ -12,6 +12,7 @@ const (
 	// Literals
 	IDENT // main
 	NUMBER
+	STRING_LITERAL
 
 	// Misc characters
 	ASTERISK            // *

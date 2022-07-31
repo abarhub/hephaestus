@@ -44,6 +44,9 @@ func (s *Scanner) Scan() ScannerRes {
 	} else if isDigit(ch) {
 		s.unread()
 		return s.scanNumber()
+	} else if ch == '"' {
+		s.unread()
+		return s.scanString()
 	}
 
 	// Otherwise read the individual character.
@@ -159,6 +162,24 @@ func (s *Scanner) read() rune {
 
 // unread places the previously read rune back on the reader.
 func (s *Scanner) unread() { _ = s.r.UnreadRune() }
+
+func (s *Scanner) scanString() ScannerRes {
+	var buf bytes.Buffer
+	buf.WriteRune(s.read())
+
+	for {
+		if ch := s.read(); ch == eof {
+			break
+		} else if ch == '"' {
+			_, _ = buf.WriteRune(ch)
+			break
+		} else {
+			_, _ = buf.WriteRune(ch)
+		}
+	}
+
+	return newScannerRes(STRING_LITERAL, buf.String()[1:buf.Len()-1])
+}
 
 // isWhitespace returns true if the rune is a space, tab, or newline.
 func isWhitespace(ch rune) bool { return ch == ' ' || ch == '\t' || ch == '\n' }
