@@ -13,6 +13,7 @@ const (
 	TYPE_INT TypeCode = iota
 	TYPE_VOID
 	TYPE_STRING
+	TYPE_BOOLEAN
 )
 
 type Type struct {
@@ -38,6 +39,13 @@ const (
 	EXPR_CODE_ADD
 	EXPR_CODE_SUB
 	EXPR_CODE_STR
+	EXPR_CODE_LT
+	EXPR_CODE_LTE
+	EXPR_CODE_GT
+	EXPR_CODE_GTE
+	EXPR_CODE_EQU
+	EXPR_CODE_TRUE
+	EXPR_CODE_FALSE
 )
 
 type Expression struct {
@@ -58,6 +66,10 @@ type Parser struct {
 		n   int    // buffer size (max=1)
 	}
 }
+
+var binaryOperation = map[Token]ExprCode{ADD: EXPR_CODE_ADD,
+	SUB: EXPR_CODE_SUB, EQUALS2: EXPR_CODE_EQU, LESSER: EXPR_CODE_LT, LESSER_OR_EQUALS: EXPR_CODE_LTE,
+	GREATER: EXPR_CODE_GT, GREATER_OR_EQUALS: EXPR_CODE_GTE}
 
 // NewParser returns a new instance of Parser.
 func NewParser(r io.Reader) *Parser {
@@ -101,24 +113,22 @@ func (p *Parser) parseExpr() (*Expression, error) {
 		expr = Expression{code: EXPR_CODE_VAR, variable: lit}
 	} else if tok == STRING_LITERAL {
 		expr = Expression{code: EXPR_CODE_STR, valeurString: lit}
+	} else if tok == TRUE {
+		expr = Expression{code: EXPR_CODE_TRUE}
+	} else if tok == FALSE {
+		expr = Expression{code: EXPR_CODE_FALSE}
 	} else {
 		return nil, fmt.Errorf("found %q, expected number", lit)
 	}
 	tok, lit = p.scanIgnoreWhitespace()
-	if tok == ADD || tok == SUB {
+	if val, ok := binaryOperation[tok]; ok {
 		expr2, err := p.parseExpr()
 		if err != nil {
 			return nil, fmt.Errorf("expected expression for add: %s", err)
 		} else {
 			var expr3 *Expression
 			expr3 = new(Expression)
-			if tok == ADD {
-				expr3.code = EXPR_CODE_ADD
-			} else if tok == SUB {
-				expr3.code = EXPR_CODE_SUB
-			} else {
-				return nil, fmt.Errorf("expected operator + or -")
-			}
+			expr3.code = val
 			expr3.left = &expr
 			expr3.right = expr2
 			return expr3, nil
@@ -142,6 +152,10 @@ func (p *Parser) parseType() (*Type, error) {
 	} else if tok == STRING {
 		res = new(Type)
 		res.code = TYPE_STRING
+		return res, nil
+	} else if tok == BOOLEAN {
+		res = new(Type)
+		res.code = TYPE_BOOLEAN
 		return res, nil
 	} else {
 		return nil, fmt.Errorf("found %q, expected type", lit)

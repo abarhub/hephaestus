@@ -66,13 +66,35 @@ func (s *Scanner) Scan() ScannerRes {
 	case '}':
 		return newScannerRes(CLOSE_CURLY_BRACKET, string(ch))
 	case '=':
-		return newScannerRes(EQUALS, string(ch))
+		ch := s.read()
+		if ch == '=' {
+			return newScannerRes(EQUALS2, "==")
+		} else {
+			s.unread()
+			return newScannerRes(EQUALS, "=")
+		}
 	case ';':
 		return newScannerRes(SEMICOLON, string(ch))
 	case '+':
 		return newScannerRes(ADD, string(ch))
 	case '-':
 		return newScannerRes(SUB, string(ch))
+	case '<':
+		ch := s.read()
+		if ch == '=' {
+			return newScannerRes(LESSER_OR_EQUALS, "<=")
+		} else {
+			s.unread()
+			return newScannerRes(LESSER, "<")
+		}
+	case '>':
+		ch := s.read()
+		if ch == '=' {
+			return newScannerRes(GREATER_OR_EQUALS, ">=")
+		} else {
+			s.unread()
+			return newScannerRes(GREATER, ">")
+		}
 	}
 
 	return newScannerRes(ILLEGAL, string(ch))
@@ -126,6 +148,12 @@ func (s *Scanner) scanIdent() ScannerRes {
 		return newScannerRes(INT, buf.String())
 	case "string":
 		return newScannerRes(STRING, buf.String())
+	case "boolean":
+		return newScannerRes(BOOLEAN, buf.String())
+	case "true":
+		return newScannerRes(TRUE, buf.String())
+	case "false":
+		return newScannerRes(FALSE, buf.String())
 	}
 
 	// Otherwise return as a regular identifier.

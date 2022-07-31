@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"strings"
 	"testing"
@@ -85,6 +87,64 @@ func TestParser_ParseStatement(t *testing.T) {
 			},
 			},
 		},
+		{
+			s: `void test3() { x=true; y=false;z=5<=7;}`,
+			funct: []Function{{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "test3",
+				Instruction: []Instruction{
+					{
+						Variable: "x",
+						Valeur:   &Expression{code: EXPR_CODE_TRUE},
+					}, {
+						Variable: "y",
+						Valeur:   &Expression{code: EXPR_CODE_FALSE},
+					}, {
+						Variable: "z",
+						Valeur: &Expression{code: EXPR_CODE_LTE,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 5},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 7}},
+					},
+				},
+			},
+			},
+		},
+		{
+			s: `void test3() { x=10<3; y=14<=17;z=20>26;t=36>=50;v=40==63;}`,
+			funct: []Function{{
+				ReturnType: Type{TYPE_VOID},
+				Name:       "test3",
+				Instruction: []Instruction{
+					{
+						Variable: "x",
+						Valeur: &Expression{code: EXPR_CODE_LT,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 10},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 3}},
+					}, {
+						Variable: "y",
+						Valeur: &Expression{code: EXPR_CODE_LTE,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 14},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 17}},
+					}, {
+						Variable: "z",
+						Valeur: &Expression{code: EXPR_CODE_GT,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 20},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 26}},
+					}, {
+						Variable: "t",
+						Valeur: &Expression{code: EXPR_CODE_GTE,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 36},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 50}},
+					}, {
+						Variable: "v",
+						Valeur: &Expression{code: EXPR_CODE_EQU,
+							left:  &Expression{code: EXPR_CODE_INT, valeurInt: 40},
+							right: &Expression{code: EXPR_CODE_INT, valeurInt: 63}},
+					},
+				},
+			},
+			},
+		},
 		// Errors
 		{s: `void main()`, err: `found "", expected {`},
 	}
@@ -94,6 +154,7 @@ func TestParser_ParseStatement(t *testing.T) {
 		if !reflect.DeepEqual(tt.err, errstring(err)) {
 			t.Errorf("%d. %q: error mismatch:\n  exp=%s\n  got=%s\n\n", i, tt.s, tt.err, err)
 		} else if tt.err == "" && !reflect.DeepEqual(tt.funct, stmt) {
+			assert.Errorf(t, fmt.Errorf("err"), "%d. %q\n\nstmt mismatch:\n\nexp=%#v\n\ngot=%#v\n\n", i, tt.s, tt.funct, stmt)
 			t.Errorf("%d. %q\n\nstmt mismatch:\n\nexp=%#v\n\ngot=%#v\n\n", i, tt.s, tt.funct, stmt)
 		}
 	}

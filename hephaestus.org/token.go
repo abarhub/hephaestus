@@ -25,9 +25,17 @@ const (
 	SEMICOLON           // ;
 	ADD                 // +
 	SUB                 // -
+	EQUALS2             // ==
+	LESSER              // <
+	LESSER_OR_EQUALS    // <=
+	GREATER             // >
+	GREATER_OR_EQUALS   // >=
 
 	// Keywords
 	VOID
 	INT
 	STRING
+	BOOLEAN
+	TRUE
+	FALSE
 )
