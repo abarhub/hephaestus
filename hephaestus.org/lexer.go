@@ -3,12 +3,20 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 )
 
+type Position struct {
+	line   int
+	column int
+	pos    int
+}
+
 type ScannerRes struct {
-	tok Token
-	lit string
+	tok      Token
+	lit      string
+	position Position
 }
 
 // Scanner represents a lexical scanner.
@@ -16,6 +24,8 @@ type Scanner struct {
 	r              *bufio.Reader
 	tab            []ScannerRes
 	positionUnread int
+	position       Position
+	lastposition   *Position
 }
 
 // NewScanner returns a new instance of Scanner.
@@ -23,12 +33,12 @@ func NewScanner(r io.Reader) *Scanner {
 	return &Scanner{r: bufio.NewReader(r)}
 }
 
-func newScannerRes(tok Token, lit string) ScannerRes {
+func (s *Scanner) newScannerRes(tok Token, lit string) ScannerRes {
 	return ScannerRes{tok: tok, lit: lit}
 }
 
 // Scan returns the next token and literal value.
-func (s *Scanner) Scan() ScannerRes {
+func (s *Scanner) Scan() (ScannerRes, error) {
 	// Read the next rune.
 	ch := s.read()
 
@@ -36,72 +46,88 @@ func (s *Scanner) Scan() ScannerRes {
 	// If we see a letter then consume as an ident or reserved word.
 	// If we see a digit then consume as a number.
 	if isWhitespace(ch) {
-		s.unread()
-		return s.scanWhitespace()
+		err := s.unread()
+		if err != nil {
+			return ScannerRes{}, err
+		}
+		scan, err := s.scanWhitespace()
+		return scan, err
 	} else if isLetter(ch) {
-		s.unread()
-		return s.scanIdent()
+		err := s.unread()
+		if err != nil {
+			return ScannerRes{}, err
+		}
+		scan, err := s.scanIdent()
+		return scan, err
 	} else if isDigit(ch) {
-		s.unread()
-		return s.scanNumber()
+		err := s.unread()
+		if err != nil {
+			return ScannerRes{}, err
+		}
+		scan, err := s.scanNumber()
+		return scan, err
 	} else if ch == '"' {
-		s.unread()
-		return s.scanString()
+		err := s.unread()
+		if err != nil {
+			return ScannerRes{}, err
+		}
+		scan, err := s.scanString()
+		return scan, err
 	}
 
 	// Otherwise read the individual character.
 	switch ch {
 	case eof:
-		return newScannerRes(EOF, "")
+		return s.newScannerRes(EOF, ""), nil
 	case '*':
-		return newScannerRes(ASTERISK, string(ch))
+		return s.newScannerRes(ASTERISK, string(ch)), nil
 	case ',':
-		return newScannerRes(COMMA, string(ch))
+		return s.newScannerRes(COMMA, string(ch)), nil
 	case '(':
-		return newScannerRes(OPEN_PARENTHESIS, string(ch))
+		return s.newScannerRes(OPEN_PARENTHESIS, string(ch)), nil
 	case ')':
-		return newScannerRes(CLOSE_PARENTHESIS, string(ch))
+		return s.newScannerRes(CLOSE_PARENTHESIS, string(ch)), nil
 	case '{':
-		return newScannerRes(OPEN_CURLY_BRACKET, string(ch))
+		return s.newScannerRes(OPEN_CURLY_BRACKET, string(ch)), nil
 	case '}':
-		return newScannerRes(CLOSE_CURLY_BRACKET, string(ch))
+		return s.newScannerRes(CLOSE_CURLY_BRACKET, string(ch)), nil
 	case '=':
 		ch := s.read()
 		if ch == '=' {
-			return newScannerRes(EQUALS2, "==")
+			return s.newScannerRes(EQUALS2, "=="), nil
 		} else {
-			s.unread()
-			return newScannerRes(EQUALS, "=")
+			err := s.unread()
+			return s.newScannerRes(EQUALS, "="), err
 		}
 	case ';':
-		return newScannerRes(SEMICOLON, string(ch))
+		return s.newScannerRes(SEMICOLON, string(ch)), nil
 	case '+':
-		return newScannerRes(ADD, string(ch))
+		return s.newScannerRes(ADD, string(ch)), nil
 	case '-':
-		return newScannerRes(SUB, string(ch))
+		return s.newScannerRes(SUB, string(ch)), nil
 	case '<':
 		ch := s.read()
 		if ch == '=' {
-			return newScannerRes(LESSER_OR_EQUALS, "<=")
+			return s.newScannerRes(LESSER_OR_EQUALS, "<="), nil
 		} else {
-			s.unread()
-			return newScannerRes(LESSER, "<")
+			err := s.unread()
+			return s.newScannerRes(LESSER, "<"), err
 		}
 	case '>':
 		ch := s.read()
 		if ch == '=' {
-			return newScannerRes(GREATER_OR_EQUALS, ">=")
+			return s.newScannerRes(GREATER_OR_EQUALS, ">="), nil
 		} else {
-			s.unread()
-			return newScannerRes(GREATER, ">")
+			err := s.unread()
+			return s.newScannerRes(GREATER, ">"), err
 		}
 	}
 
-	return newScannerRes(ILLEGAL, string(ch))
+	return s.newScannerRes(ILLEGAL, string(ch)), nil
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
-func (s *Scanner) scanWhitespace() ScannerRes {
+func (s *Scanner) scanWhitespace() (ScannerRes, error) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -112,18 +138,21 @@ func (s *Scanner) scanWhitespace() ScannerRes {
 		if ch := s.read(); ch == eof {
 			break
 		} else if !isWhitespace(ch) {
-			s.unread()
+			err := s.unread()
+			if err != nil {
+				return ScannerRes{}, err
+			}
 			break
 		} else {
 			buf.WriteRune(ch)
 		}
 	}
 
-	return newScannerRes(WS, buf.String())
+	return s.newScannerRes(WS, buf.String()), nil
 }
 
 // scanIdent consumes the current rune and all contiguous ident runes.
-func (s *Scanner) scanIdent() ScannerRes {
+func (s *Scanner) scanIdent() (ScannerRes, error) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
@@ -134,7 +163,10 @@ func (s *Scanner) scanIdent() ScannerRes {
 		if ch := s.read(); ch == eof {
 			break
 		} else if !isLetter(ch) && !isDigit(ch) && ch != '_' {
-			s.unread()
+			err := s.unread()
+			if err != nil {
+				return ScannerRes{}, err
+			}
 			break
 		} else {
 			_, _ = buf.WriteRune(ch)
@@ -143,24 +175,24 @@ func (s *Scanner) scanIdent() ScannerRes {
 
 	switch buf.String() {
 	case "void":
-		return newScannerRes(VOID, buf.String())
+		return s.newScannerRes(VOID, buf.String()), nil
 	case "int":
-		return newScannerRes(INT, buf.String())
+		return s.newScannerRes(INT, buf.String()), nil
 	case "string":
-		return newScannerRes(STRING, buf.String())
+		return s.newScannerRes(STRING, buf.String()), nil
 	case "boolean":
-		return newScannerRes(BOOLEAN, buf.String())
+		return s.newScannerRes(BOOLEAN, buf.String()), nil
 	case "true":
-		return newScannerRes(TRUE, buf.String())
+		return s.newScannerRes(TRUE, buf.String()), nil
 	case "false":
-		return newScannerRes(FALSE, buf.String())
+		return s.newScannerRes(FALSE, buf.String()), nil
 	}
 
 	// Otherwise return as a regular identifier.
-	return newScannerRes(IDENT, buf.String())
+	return s.newScannerRes(IDENT, buf.String()), nil
 }
 
-func (s *Scanner) scanNumber() ScannerRes {
+func (s *Scanner) scanNumber() (ScannerRes, error) {
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
 
@@ -168,14 +200,17 @@ func (s *Scanner) scanNumber() ScannerRes {
 		if ch := s.read(); ch == eof {
 			break
 		} else if !isDigit(ch) {
-			s.unread()
+			err := s.unread()
+			if err != nil {
+				return ScannerRes{}, err
+			}
 			break
 		} else {
 			_, _ = buf.WriteRune(ch)
 		}
 	}
 
-	return newScannerRes(NUMBER, buf.String())
+	return s.newScannerRes(NUMBER, buf.String()), nil
 }
 
 // read reads the next rune from the buffered reader.
@@ -185,13 +220,31 @@ func (s *Scanner) read() rune {
 	if err != nil {
 		return eof
 	}
+	position := Position{}
+	position.line = s.position.line
+	position.column = s.position.column
+	position.pos = s.position.pos
+	s.lastposition = &position
+	s.position.pos = s.position.pos + 1
+	if ch == '\n' {
+		s.position.line++
+		s.position.column = 0
+	}
 	return ch
 }
 
 // unread places the previously read rune back on the reader.
-func (s *Scanner) unread() { _ = s.r.UnreadRune() }
+func (s *Scanner) unread() error {
+	_ = s.r.UnreadRune()
+	if s.lastposition == nil {
+		return fmt.Errorf("no character before")
+	}
+	s.position = *s.lastposition
+	s.lastposition = nil
+	return nil
+}
 
-func (s *Scanner) scanString() ScannerRes {
+func (s *Scanner) scanString() (ScannerRes, error) {
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
 
@@ -206,7 +259,7 @@ func (s *Scanner) scanString() ScannerRes {
 		}
 	}
 
-	return newScannerRes(STRING_LITERAL, buf.String()[1:buf.Len()-1])
+	return s.newScannerRes(STRING_LITERAL, buf.String()[1:buf.Len()-1]), nil
 }
 
 // isWhitespace returns true if the rune is a space, tab, or newline.

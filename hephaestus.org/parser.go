@@ -111,8 +111,10 @@ func parser() {
 
 func (p *Parser) parseExpr() (*Expression, error) {
 	var expr Expression
-	tok, lit := p.scanIgnoreWhitespace()
-	if tok == NUMBER {
+	tok, lit, err := p.scanIgnoreWhitespace()
+	if err != nil {
+		return nil, err
+	} else if tok == NUMBER {
 		intVar, err := strconv.Atoi(lit)
 		if err != nil {
 			return nil, fmt.Errorf("found %q, expected number", lit)
@@ -130,8 +132,10 @@ func (p *Parser) parseExpr() (*Expression, error) {
 	} else {
 		return nil, fmt.Errorf("found %q, expected number", lit)
 	}
-	tok, lit = p.scanIgnoreWhitespace()
-	if val, ok := binaryOperation[tok]; ok {
+	tok, lit, err = p.scanIgnoreWhitespace()
+	if err != nil {
+		return nil, err
+	} else if val, ok := binaryOperation[tok]; ok {
 		expr2, err := p.parseExpr()
 		if err != nil {
 			return nil, fmt.Errorf("expected expression for add: %s", err)
@@ -151,7 +155,9 @@ func (p *Parser) parseExpr() (*Expression, error) {
 
 func (p *Parser) parseType() (*Type, error) {
 	var res *Type
-	if tok, lit := p.scanIgnoreWhitespace(); tok == VOID {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return nil, err
+	} else if tok == VOID {
 		res = new(Type)
 		res.code = TYPE_VOID
 		return res, nil
@@ -179,13 +185,17 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 		instr := &Instruction{}
 		var name = ""
 
-		if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
+		if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+			return nil, err
+		} else if tok != IDENT {
 			return nil, fmt.Errorf("found %q, expected identifier", lit)
 		} else {
 			name = lit
 		}
 
-		if tok, lit := p.scanIgnoreWhitespace(); tok == EQUALS {
+		if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+			return nil, err
+		} else if tok == EQUALS {
 			expr, err := p.parseExpr()
 			if err != nil {
 				return nil, fmt.Errorf("invalid expression: %s", err)
@@ -205,7 +215,9 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 					return nil, fmt.Errorf("invalid expression: %s", err)
 				} else {
 					param = append(param, *expr)
-					if tok, _ := p.scanIgnoreWhitespace(); tok == COMMA {
+					if tok, _, err := p.scanIgnoreWhitespace(); err != nil {
+						return nil, err
+					} else if tok == COMMA {
 						// on continue
 					} else if tok == CLOSE_PARENTHESIS {
 						end = true
@@ -219,13 +231,17 @@ func (p *Parser) parseInstr(funct *Function) (*Instruction, error) {
 			return nil, fmt.Errorf("found %q, expected =", lit)
 		}
 
-		if tok, lit := p.scanIgnoreWhitespace(); tok != SEMICOLON {
+		if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+			return nil, err
+		} else if tok != SEMICOLON {
 			return nil, fmt.Errorf("found %q, expected ';'", lit)
 		}
 
 		funct.Instruction = append(funct.Instruction, *instr)
 
-		if tok, _ := p.scanIgnoreWhitespace(); tok == CLOSE_CURLY_BRACKET {
+		if tok, _, err := p.scanIgnoreWhitespace(); err != nil {
+			return nil, err
+		} else if tok == CLOSE_CURLY_BRACKET {
 			p.unscan()
 			break
 		} else {
@@ -247,21 +263,29 @@ func (p *Parser) Parse2() ([]Function, error) {
 	}
 	funct.ReturnType = *typeReturn
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != IDENT {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return []Function{}, err
+	} else if tok != IDENT {
 		return nil, fmt.Errorf("found %q, expected main", lit)
 	} else {
 		funct.Name = lit
 	}
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != OPEN_PARENTHESIS {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return []Function{}, err
+	} else if tok != OPEN_PARENTHESIS {
 		return nil, fmt.Errorf("found %q, expected (", lit)
 	}
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != CLOSE_PARENTHESIS {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return []Function{}, err
+	} else if tok != CLOSE_PARENTHESIS {
 		return nil, fmt.Errorf("found %q, expected )", lit)
 	}
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != OPEN_CURLY_BRACKET {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return []Function{}, err
+	} else if tok != OPEN_CURLY_BRACKET {
 		return nil, fmt.Errorf("found %q, expected {", lit)
 	}
 
@@ -270,7 +294,9 @@ func (p *Parser) Parse2() ([]Function, error) {
 		return nil, fmt.Errorf("expected instruction: %s", err)
 	}
 
-	if tok, lit := p.scanIgnoreWhitespace(); tok != CLOSE_CURLY_BRACKET {
+	if tok, lit, err := p.scanIgnoreWhitespace(); err != nil {
+		return []Function{}, err
+	} else if tok != CLOSE_CURLY_BRACKET {
 		return nil, fmt.Errorf("found %q, expected }", lit)
 	}
 
@@ -279,15 +305,18 @@ func (p *Parser) Parse2() ([]Function, error) {
 
 // scan returns the next token from the underlying scanner.
 // If a token has been unscanned then read that instead.
-func (p *Parser) scan() (tok Token, lit string) {
+func (p *Parser) scan() (tok Token, lit string, error error) {
 	// If we have a token on the buffer, then return it.
 	if p.buf.n != 0 {
 		p.buf.n = 0
-		return p.buf.tok, p.buf.lit
+		return p.buf.tok, p.buf.lit, nil
 	}
 
 	// Otherwise read the next token from the scanner.
-	tmp := p.s.Scan()
+	tmp, err := p.s.Scan()
+	if err != nil {
+		error = err
+	}
 	tok, lit = tmp.tok, tmp.lit
 
 	// Save it to the buffer in case we unscan later.
@@ -297,10 +326,10 @@ func (p *Parser) scan() (tok Token, lit string) {
 }
 
 // scanIgnoreWhitespace scans the next non-whitespace token.
-func (p *Parser) scanIgnoreWhitespace() (tok Token, lit string) {
-	tok, lit = p.scan()
+func (p *Parser) scanIgnoreWhitespace() (tok Token, lit string, err error) {
+	tok, lit, err = p.scan()
 	if tok == WS {
-		tok, lit = p.scan()
+		tok, lit, err = p.scan()
 	}
 	return
 }
