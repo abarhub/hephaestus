@@ -30,17 +30,20 @@ type Scanner struct {
 
 // NewScanner returns a new instance of Scanner.
 func NewScanner(r io.Reader) *Scanner {
-	return &Scanner{r: bufio.NewReader(r)}
+	return &Scanner{r: bufio.NewReader(r), position: Position{
+		line: 1, column: 1, pos: -1,
+	}}
 }
 
-func (s *Scanner) newScannerRes(tok Token, lit string) ScannerRes {
-	return ScannerRes{tok: tok, lit: lit}
+func (s *Scanner) newScannerRes(tok Token, lit string, pos Position) ScannerRes {
+	return ScannerRes{tok: tok, lit: lit, position: pos}
 }
 
 // Scan returns the next token and literal value.
 func (s *Scanner) Scan() (ScannerRes, error) {
 	// Read the next rune.
 	ch := s.read()
+	pos := s.position
 
 	// If we see whitespace then consume all contiguous whitespace.
 	// If we see a letter then consume as an ident or reserved word.
@@ -78,52 +81,52 @@ func (s *Scanner) Scan() (ScannerRes, error) {
 	// Otherwise read the individual character.
 	switch ch {
 	case eof:
-		return s.newScannerRes(EOF, ""), nil
+		return s.newScannerRes(EOF, "", pos), nil
 	case '*':
-		return s.newScannerRes(ASTERISK, string(ch)), nil
+		return s.newScannerRes(ASTERISK, string(ch), pos), nil
 	case ',':
-		return s.newScannerRes(COMMA, string(ch)), nil
+		return s.newScannerRes(COMMA, string(ch), pos), nil
 	case '(':
-		return s.newScannerRes(OPEN_PARENTHESIS, string(ch)), nil
+		return s.newScannerRes(OPEN_PARENTHESIS, string(ch), pos), nil
 	case ')':
-		return s.newScannerRes(CLOSE_PARENTHESIS, string(ch)), nil
+		return s.newScannerRes(CLOSE_PARENTHESIS, string(ch), pos), nil
 	case '{':
-		return s.newScannerRes(OPEN_CURLY_BRACKET, string(ch)), nil
+		return s.newScannerRes(OPEN_CURLY_BRACKET, string(ch), pos), nil
 	case '}':
-		return s.newScannerRes(CLOSE_CURLY_BRACKET, string(ch)), nil
+		return s.newScannerRes(CLOSE_CURLY_BRACKET, string(ch), pos), nil
 	case '=':
 		ch := s.read()
 		if ch == '=' {
-			return s.newScannerRes(EQUALS2, "=="), nil
+			return s.newScannerRes(EQUALS2, "==", pos), nil
 		} else {
 			err := s.unread()
-			return s.newScannerRes(EQUALS, "="), err
+			return s.newScannerRes(EQUALS, "=", pos), err
 		}
 	case ';':
-		return s.newScannerRes(SEMICOLON, string(ch)), nil
+		return s.newScannerRes(SEMICOLON, string(ch), pos), nil
 	case '+':
-		return s.newScannerRes(ADD, string(ch)), nil
+		return s.newScannerRes(ADD, string(ch), pos), nil
 	case '-':
-		return s.newScannerRes(SUB, string(ch)), nil
+		return s.newScannerRes(SUB, string(ch), pos), nil
 	case '<':
 		ch := s.read()
 		if ch == '=' {
-			return s.newScannerRes(LESSER_OR_EQUALS, "<="), nil
+			return s.newScannerRes(LESSER_OR_EQUALS, "<=", pos), nil
 		} else {
 			err := s.unread()
-			return s.newScannerRes(LESSER, "<"), err
+			return s.newScannerRes(LESSER, "<", pos), err
 		}
 	case '>':
 		ch := s.read()
 		if ch == '=' {
-			return s.newScannerRes(GREATER_OR_EQUALS, ">="), nil
+			return s.newScannerRes(GREATER_OR_EQUALS, ">=", pos), nil
 		} else {
 			err := s.unread()
-			return s.newScannerRes(GREATER, ">"), err
+			return s.newScannerRes(GREATER, ">", pos), err
 		}
 	}
 
-	return s.newScannerRes(ILLEGAL, string(ch)), nil
+	return s.newScannerRes(ILLEGAL, string(ch), pos), nil
 }
 
 // scanWhitespace consumes the current rune and all contiguous whitespace.
@@ -131,6 +134,7 @@ func (s *Scanner) scanWhitespace() (ScannerRes, error) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
+	pos := s.position
 
 	// Read every subsequent whitespace character into the buffer.
 	// Non-whitespace characters and EOF will cause the loop to exit.
@@ -148,7 +152,7 @@ func (s *Scanner) scanWhitespace() (ScannerRes, error) {
 		}
 	}
 
-	return s.newScannerRes(WS, buf.String()), nil
+	return s.newScannerRes(WS, buf.String(), pos), nil
 }
 
 // scanIdent consumes the current rune and all contiguous ident runes.
@@ -156,6 +160,7 @@ func (s *Scanner) scanIdent() (ScannerRes, error) {
 	// Create a buffer and read the current character into it.
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
+	pos := s.position
 
 	// Read every subsequent ident character into the buffer.
 	// Non-ident characters and EOF will cause the loop to exit.
@@ -175,26 +180,27 @@ func (s *Scanner) scanIdent() (ScannerRes, error) {
 
 	switch buf.String() {
 	case "void":
-		return s.newScannerRes(VOID, buf.String()), nil
+		return s.newScannerRes(VOID, buf.String(), pos), nil
 	case "int":
-		return s.newScannerRes(INT, buf.String()), nil
+		return s.newScannerRes(INT, buf.String(), pos), nil
 	case "string":
-		return s.newScannerRes(STRING, buf.String()), nil
+		return s.newScannerRes(STRING, buf.String(), pos), nil
 	case "boolean":
-		return s.newScannerRes(BOOLEAN, buf.String()), nil
+		return s.newScannerRes(BOOLEAN, buf.String(), pos), nil
 	case "true":
-		return s.newScannerRes(TRUE, buf.String()), nil
+		return s.newScannerRes(TRUE, buf.String(), pos), nil
 	case "false":
-		return s.newScannerRes(FALSE, buf.String()), nil
+		return s.newScannerRes(FALSE, buf.String(), pos), nil
 	}
 
 	// Otherwise return as a regular identifier.
-	return s.newScannerRes(IDENT, buf.String()), nil
+	return s.newScannerRes(IDENT, buf.String(), pos), nil
 }
 
 func (s *Scanner) scanNumber() (ScannerRes, error) {
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
+	pos := s.position
 
 	for {
 		if ch := s.read(); ch == eof {
@@ -210,7 +216,7 @@ func (s *Scanner) scanNumber() (ScannerRes, error) {
 		}
 	}
 
-	return s.newScannerRes(NUMBER, buf.String()), nil
+	return s.newScannerRes(NUMBER, buf.String(), pos), nil
 }
 
 // read reads the next rune from the buffered reader.
@@ -228,7 +234,7 @@ func (s *Scanner) read() rune {
 	s.position.pos = s.position.pos + 1
 	if ch == '\n' {
 		s.position.line++
-		s.position.column = 0
+		s.position.column = 1
 	}
 	return ch
 }
@@ -247,6 +253,7 @@ func (s *Scanner) unread() error {
 func (s *Scanner) scanString() (ScannerRes, error) {
 	var buf bytes.Buffer
 	buf.WriteRune(s.read())
+	pos := s.position
 
 	for {
 		if ch := s.read(); ch == eof {
@@ -259,7 +266,7 @@ func (s *Scanner) scanString() (ScannerRes, error) {
 		}
 	}
 
-	return s.newScannerRes(STRING_LITERAL, buf.String()[1:buf.Len()-1]), nil
+	return s.newScannerRes(STRING_LITERAL, buf.String()[1:buf.Len()-1], pos), nil
 }
 
 // isWhitespace returns true if the rune is a space, tab, or newline.
